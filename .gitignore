@@ -1,0 +1,10 @@
+# Local environment files; keep shareable templates.
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# Operating system files.
+.DS_Store
+Thumbs.db
+desktop.ini
