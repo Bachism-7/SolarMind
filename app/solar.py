@@ -1,4 +1,4 @@
-"""pvlib-based solar position and virtual-day sampling."""
+"""pvlib-based solar position and day sampling."""
 
 from __future__ import annotations
 
@@ -51,37 +51,11 @@ def calculate_solar(latitude: Any, longitude: Any, timestamp: datetime) -> dict[
     return calculate_solar_many(latitude, longitude, [timestamp])[0]
 
 
-def panel_target(solar: dict[str, float], daylight_threshold_deg: float = 0.0) -> dict[str, Any]:
-    elevation = solar["apparent_elevation_deg"]
-    if elevation <= daylight_threshold_deg:
-        return {
-            "status": "SUN_BELOW_HORIZON",
-            "sun_above_horizon": elevation > 0.0,
-            "target_azimuth_deg": None,
-            "target_tilt_deg": None,
-        }
-    tilt = 90.0 - elevation
-    if not 0.0 <= tilt <= 90.0:
-        return {
-            "status": "TARGET_UNREACHABLE",
-            "sun_above_horizon": True,
-            "target_azimuth_deg": None,
-            "target_tilt_deg": None,
-        }
-    return {
-        "status": "PREVIEW",
-        "sun_above_horizon": True,
-        "target_azimuth_deg": solar["azimuth_deg"] % 360.0,
-        "target_tilt_deg": tilt,
-    }
-
-
 def sample_local_day(
     latitude: Any,
     longitude: Any,
     day: date,
     timezone_name: str,
-    daylight_threshold_deg: float = 0.0,
     interval_minutes: int = 15,
 ) -> dict[str, Any]:
     if not 1 <= interval_minutes <= 60:
@@ -101,7 +75,6 @@ def sample_local_day(
     samples = []
     for instant, solar in zip(instants, solar_values, strict=True):
         local = instant.astimezone(zone)
-        target = panel_target(solar, daylight_threshold_deg)
         samples.append(
             {
                 "timestamp": instant.isoformat().replace("+00:00", "Z"),
@@ -110,7 +83,6 @@ def sample_local_day(
                 "local_time": local.strftime("%H:%M"),
                 "fold": local.fold,
                 **solar,
-                **target,
             }
         )
     return {
