@@ -25,5 +25,3 @@ dist/
 .agents/
 docs/
 
-# Serial login credentials
-serial_login.py
