@@ -1,0 +1,1 @@
+"""SolarMind desktop application."""

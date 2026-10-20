@@ -1,0 +1,28 @@
+installation:
+  label: Installation site
+  latitude: null
+  longitude: null
+  timezone: UTC
+ssh:
+  alias: solarmind-jetson
+  ros_setup_path: ""
+operation:
+  dry_run: true
+  hardware_enabled: false
+  daylight_threshold_deg: 0.0
+calibration:
+  azimuth_verified: false
+  azimuth_min_pulse: 0
+  azimuth_max_pulse: 1000
+  orientation_note: ""
+  tilt_verified: false
+  tilt_direction: 1
+  tilt_offset_deg: 0.0
+  tilt_min_angle_deg: -90.0
+  tilt_max_angle_deg: 90.0
+  tilt_min_pulse: 0
+  tilt_max_pulse: 1000
+safety:
+  max_delta_pulse: 100
+  assumed_azimuth_pulse: null
+  assumed_tilt_pulse: null

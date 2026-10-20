@@ -8,3 +8,17 @@
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Local Python environments and generated artifacts.
+.venv/
+.runtime/
+.pip-cache/
+pip-ephem-wheel-cache-*/
+pytest-of-*/
+/tmpa6m2bvkd/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+build/
+dist/
+*.egg-info/

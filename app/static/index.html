@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f6f2">
+  <title>SolarMind | Solar tracker</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#live" aria-label="SolarMind home">
+      <span class="brand-mark" aria-hidden="true">S</span>
+      <span>SolarMind</span>
+    </a>
+    <nav class="mode-tabs" aria-label="Operating mode">
+      <button class="mode-tab active" type="button" data-mode="live" aria-pressed="true">Live</button>
+      <button class="mode-tab" type="button" data-mode="simulate" aria-pressed="false">Simulate</button>
+    </nav>
+    <div class="system-state">
+      <span class="status-dot" id="connection-dot"></span>
+      <span id="connection-label">Local service</span>
+      <span class="state-divider" aria-hidden="true"></span>
+      <span class="status-chip dry-run-chip" id="operation-badge">DRY RUN</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="mode-view active" id="live-view" aria-labelledby="live-title">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">MODE 01 / LIVE SKY</p>
+          <h1 id="live-title">Sun position at your installation</h1>
+          <p class="heading-note">Solar values refresh on screen. The arm moves only after a separate confirmation.</p>
+        </div>
+        <button class="button button-quiet" type="button" id="refresh-live">Refresh solar data</button>
+      </div>
+
+      <div class="live-grid">
+        <article class="panel live-summary">
+          <div class="panel-kicker-row">
+            <span class="eyebrow">CALCULATED TARGET</span>
+            <span class="status-chip" id="live-status">Waiting for site</span>
+          </div>
+          <div class="clock-block">
+            <span class="clock-time" id="live-local-time">--:--:--</span>
+            <span class="clock-zone" id="live-timezone">Installation time</span>
+            <span class="clock-utc" id="live-utc-time">UTC --</span>
+          </div>
+          <div class="angle-grid">
+            <div class="angle-cell">
+              <span class="metric-label">Sun azimuth</span>
+              <strong id="live-sun-azimuth">—</strong>
+              <span class="metric-foot">clockwise from true north</span>
+            </div>
+            <div class="angle-cell">
+              <span class="metric-label">Apparent elevation</span>
+              <strong id="live-sun-elevation">—</strong>
+              <span class="metric-foot">above horizon</span>
+            </div>
+            <div class="angle-cell target-cell">
+              <span class="metric-label">Panel azimuth</span>
+              <strong id="live-panel-azimuth">—</strong>
+              <span class="metric-foot">true north reference</span>
+            </div>
+            <div class="angle-cell target-cell">
+              <span class="metric-label">Panel tilt</span>
+              <strong id="live-panel-tilt">—</strong>
+              <span class="metric-foot">above horizontal</span>
+            </div>
+          </div>
+          <div class="command-preview">
+            <div class="command-preview-heading">
+              <div>
+                <span class="eyebrow">NOMINAL SERVO PREVIEW</span>
+                <p class="subtle">Calibration and travel rules gate physical dispatch.</p>
+              </div>
+              <span class="status-chip preview-chip" id="calibration-badge">UNVERIFIED</span>
+            </div>
+            <div class="servo-row"><span><b>ID 1</b> · azimuth</span><strong id="live-servo-1">—</strong></div>
+            <div class="servo-row"><span><b>ID 10</b> · tilt</span><strong id="live-servo-10">—</strong></div>
+            <p class="manual-note">MANUAL COMMANDS PREPARED · copying never sends</p>
+          </div>
+          <div class="button-row">
+            <button class="button button-primary" type="button" id="update-arm" disabled>Update Arm Now</button>
+            <button class="button button-quiet" type="button" id="copy-live" disabled>Copy CLI Commands</button>
+          </div>
+          <p class="action-note" id="live-action-note">Set installation coordinates to calculate a target.</p>
+        </article>
+
+        <article class="panel sky-panel">
+          <div class="panel-heading">
+            <div>
+              <span class="eyebrow">SKY DOME</span>
+              <h2>Solar bearing</h2>
+            </div>
+            <span class="north-mark">N ↑</span>
+          </div>
+          <svg class="sky-chart" id="live-chart" viewBox="0 0 300 300" role="img" aria-label="Solar bearing sky chart">
+            <circle class="sky-horizon" cx="150" cy="150" r="112"></circle>
+            <circle class="sky-ring" cx="150" cy="150" r="74"></circle>
+            <circle class="sky-ring" cx="150" cy="150" r="37"></circle>
+            <path class="sky-cross" d="M38 150H262M150 38V262"></path>
+            <text class="sky-label" x="150" y="23" text-anchor="middle">N</text>
+            <text class="sky-label" x="282" y="154" text-anchor="middle">E</text>
+            <text class="sky-label" x="150" y="292" text-anchor="middle">S</text>
+            <text class="sky-label" x="18" y="154" text-anchor="middle">W</text>
+            <path class="sky-track" id="live-track" d=""></path>
+            <circle class="sun-marker" id="live-sun-marker" cx="150" cy="150" r="7" visibility="hidden"></circle>
+            <circle class="sky-center" cx="150" cy="150" r="3"></circle>
+          </svg>
+          <div class="chart-legend"><span class="legend-sun"></span> Current apparent position <span class="legend-note">Above horizon</span></div>
+          <div class="location-strip">
+            <div><span class="metric-label">Installation site</span><strong id="live-site-label">Not configured</strong></div>
+            <div><span class="metric-label">Coordinates</span><strong id="live-coordinates">—</strong></div>
+          </div>
+        </article>
+      </div>
+
+      <div class="lower-grid">
+        <article class="panel status-panel">
+          <div class="panel-heading">
+            <div><span class="eyebrow">COMMAND STATUS</span><h2>Last requested position</h2></div>
+            <button class="text-button" id="refresh-connection" type="button">Refresh connection</button>
+          </div>
+          <div class="status-readout">
+            <span class="status-icon" id="last-command-icon">—</span>
+            <div><strong id="last-command-status">No command requested</strong><span id="last-command-time">Measured physical position: unknown</span></div>
+          </div>
+          <p class="status-foot" id="connection-detail">SSH diagnostics run only after you select Refresh connection.</p>
+        </article>
+        <article class="panel safety-panel">
+          <span class="eyebrow">POSITION SOURCE</span>
+          <h2>Requested is not measured</h2>
+          <p>ROS CLI success confirms publication only. This app has no physical position feedback; arm position remains unknown or an operator-entered estimate.</p>
+        </article>
+      </div>
+
+      <details class="panel settings-panel" id="settings-panel">
+        <summary><span><span class="eyebrow">LOCAL SETTINGS</span><strong>Installation and commissioning</strong></span><span class="summary-hint">Stored on this computer</span></summary>
+        <div class="settings-content">
+          <div class="settings-section">
+            <h3>Installation site</h3>
+            <div class="form-grid three-col">
+              <label>Site label<input id="setting-label" maxlength="100" type="text"></label>
+              <label>Latitude<input id="setting-latitude" type="number" min="-90" max="90" step="any" placeholder="e.g. 37.7749"></label>
+              <label>Longitude<input id="setting-longitude" type="number" min="-180" max="180" step="any" placeholder="e.g. -122.4194"></label>
+              <label class="span-two">IANA timezone<input id="setting-timezone" type="text" placeholder="America/Los_Angeles" autocomplete="off"></label>
+              <div class="location-actions"><button class="button button-quiet" id="use-location-live" type="button">Use My Location</button><button class="text-button" id="confirm-location-live" type="button" hidden>Confirm as installation site</button><span id="live-location-result" class="subtle"></span></div>
+            </div>
+          </div>
+          <div class="settings-section">
+            <h3>Existing Jetson SSH connection</h3>
+            <div class="form-grid three-col">
+              <label>Existing SSH alias<input id="setting-ssh-alias" maxlength="128" type="text" placeholder="solarmind-jetson"></label>
+              <label class="span-two">ROS setup script path <span class="optional-label">optional</span><input id="setting-ros-path" maxlength="240" type="text" placeholder="/opt/ros/your-distro/setup.bash"></label>
+            </div>
+            <p class="hint-box">Alias must already work with Windows OpenSSH and strict host-key checking. Setup paths are used only in a one-shot login shell. SolarMind stores no SSH password or key.</p>
+          </div>
+          <div class="settings-section">
+            <h3>Calibration and travel limits</h3>
+            <p class="section-note">Mark verified only after supervised physical checks. Identity tilt calibration is not assumed to be safe.</p>
+            <div class="form-grid four-col">
+              <label class="check-label"><input id="setting-az-verified" type="checkbox"> ID 1 calibration verified</label>
+              <label>Azimuth min pulse<input id="setting-az-min" type="number" min="0" max="1000" step="1"></label>
+              <label>Azimuth max pulse<input id="setting-az-max" type="number" min="0" max="1000" step="1"></label>
+              <label class="span-two">Verified physical orientation note<input id="setting-orientation-note" maxlength="240" type="text" placeholder="Record linkage orientation and zero reference"></label>
+              <label class="check-label"><input id="setting-tilt-verified" type="checkbox"> ID 10 calibration verified</label>
+              <label>Tilt direction<select id="setting-tilt-direction"><option value="1">+1</option><option value="-1">−1</option></select></label>
+              <label>Tilt offset (°)<input id="setting-tilt-offset" type="number" min="-180" max="180" step="any"></label>
+              <label>Tilt min angle (°)<input id="setting-tilt-min-angle" type="number" min="-90" max="90" step="any"></label>
+              <label>Tilt max angle (°)<input id="setting-tilt-max-angle" type="number" min="-90" max="90" step="any"></label>
+              <label>Tilt min pulse<input id="setting-tilt-min-pulse" type="number" min="0" max="1000" step="1"></label>
+              <label>Tilt max pulse<input id="setting-tilt-max-pulse" type="number" min="0" max="1000" step="1"></label>
+              <label>Maximum pulse change<input id="setting-max-delta" type="number" min="1" max="1000" step="1"></label>
+              <label>Assumed ID 1 current pulse <span class="optional-label">optional</span><input id="setting-current-az" type="number" min="0" max="1000" step="1" placeholder="Unknown"></label>
+              <label>Assumed ID 10 current pulse <span class="optional-label">optional</span><input id="setting-current-tilt" type="number" min="0" max="1000" step="1" placeholder="Unknown"></label>
+              <label>Daylight threshold (°)<input id="setting-daylight" type="number" min="-6" max="20" step="any"></label>
+            </div>
+          </div>
+          <div class="settings-section operation-settings">
+            <h3>Dispatch controls</h3>
+            <label class="check-label"><input id="setting-hardware-enabled" type="checkbox"> Allow hardware dispatch</label>
+            <label class="check-label"><input id="setting-dry-run" type="checkbox"> Dry run (default; never publishes ROS commands)</label>
+            <p class="commissioning-warning">Disable dry run only after calibration, cable travel, starting pose, SSH host key, and emergency power cutoff are verified.</p>
+          </div>
+          <div class="settings-footer"><button class="button button-primary" id="save-settings" type="button">Save local settings</button><span id="settings-message" role="status"></span></div>
+        </div>
+      </details>
+    </section>
+
+    <section class="mode-view" id="simulate-view" aria-labelledby="simulate-title" hidden>
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">MODE 02 / VIRTUAL TIME</p>
+          <h1 id="simulate-title">Explore a day of sun</h1>
+          <p class="heading-note">Simulation uses its own clock. It has no route to the hardware dispatch endpoint.</p>
+        </div>
+        <span class="status-chip virtual-chip">VIRTUAL ONLY</span>
+      </div>
+
+      <article class="panel sim-controls">
+        <div class="sim-location-row">
+          <label>Latitude<input id="sim-latitude" type="number" min="-90" max="90" step="any" placeholder="37.7749"></label>
+          <label>Longitude<input id="sim-longitude" type="number" min="-180" max="180" step="any" placeholder="-122.4194"></label>
+          <label>IANA timezone<input id="sim-timezone" type="text" placeholder="America/Los_Angeles" autocomplete="off"></label>
+          <label>Date<input id="sim-date" type="date"></label>
+          <button class="button button-quiet sim-geolocation" id="use-location-sim" type="button">Use My Location</button>
+          <button class="button button-primary load-day" id="load-day" type="button">Load virtual day</button>
+        </div>
+        <div class="sim-time-row">
+          <label>Local time<input id="sim-time" type="time" step="60" value="12:00"></label>
+          <label>Repeated hour<select id="sim-fold"><option value="">Choose if repeated</option><option value="0">First occurrence (fold 0)</option><option value="1">Second occurrence (fold 1)</option></select></label>
+          <button class="button button-quiet" id="calculate-time" type="button">Calculate this time</button>
+          <span class="subtle" id="sim-time-message" role="status">Local DST gaps are rejected; repeated times require a fold choice.</span>
+        </div>
+      </article>
+
+      <div class="sim-grid">
+        <article class="panel sim-chart-panel">
+          <div class="panel-heading">
+            <div><span class="eyebrow">DAILY PATH</span><h2 id="sim-day-label">No day loaded</h2></div>
+            <span id="sim-duration" class="subtle"></span>
+          </div>
+          <svg class="sky-chart sim-chart" id="sim-chart" viewBox="0 0 300 300" role="img" aria-label="Simulated solar path">
+            <circle class="sky-horizon" cx="150" cy="150" r="112"></circle>
+            <circle class="sky-ring" cx="150" cy="150" r="74"></circle>
+            <circle class="sky-ring" cx="150" cy="150" r="37"></circle>
+            <path class="sky-cross" d="M38 150H262M150 38V262"></path>
+            <text class="sky-label" x="150" y="23" text-anchor="middle">N</text>
+            <text class="sky-label" x="282" y="154" text-anchor="middle">E</text>
+            <text class="sky-label" x="150" y="292" text-anchor="middle">S</text>
+            <text class="sky-label" x="18" y="154" text-anchor="middle">W</text>
+            <path class="sky-track" id="sim-track" d=""></path>
+            <circle class="sun-marker" id="sim-sun-marker" cx="150" cy="150" r="7" visibility="hidden"></circle>
+            <circle class="sky-center" cx="150" cy="150" r="3"></circle>
+          </svg>
+          <label class="timeline-control">Timeline <input id="sim-timeline" type="range" min="0" max="0" value="0" disabled><span id="sim-timeline-label">—</span></label>
+          <div class="transport-row">
+            <div class="step-control-group" role="group" aria-label="Step simulated time backward">
+              <button class="button button-quiet" type="button" data-sim-step="-1" aria-label="Step backward 1 minute" disabled>−1m</button>
+              <button class="button button-quiet" type="button" data-sim-step="-5" aria-label="Step backward 5 minutes" disabled>−5m</button>
+              <button class="button button-quiet" type="button" data-sim-step="-15" aria-label="Step backward 15 minutes" disabled>−15m</button>
+              <button class="button button-quiet" type="button" data-sim-step="-60" aria-label="Step backward 60 minutes" disabled>−60m</button>
+            </div>
+            <button class="button button-primary" type="button" id="sim-play" disabled>Play</button>
+            <div class="step-control-group" role="group" aria-label="Step simulated time forward">
+              <button class="button button-quiet" type="button" data-sim-step="1" aria-label="Step forward 1 minute" disabled>+1m</button>
+              <button class="button button-quiet" type="button" data-sim-step="5" aria-label="Step forward 5 minutes" disabled>+5m</button>
+              <button class="button button-quiet" type="button" data-sim-step="15" aria-label="Step forward 15 minutes" disabled>+15m</button>
+              <button class="button button-quiet" type="button" data-sim-step="60" aria-label="Step forward 60 minutes" disabled>+60m</button>
+            </div>
+            <label class="speed-control">Speed<select id="sim-speed"><option value="1">1×</option><option value="60">60×</option><option value="360">360×</option><option value="1440">1440×</option></select></label>
+          </div>
+          <p class="chart-legend"><span class="legend-sun"></span> Selected time <span class="legend-note">Track uses apparent solar position</span></p>
+        </article>
+
+        <article class="panel sim-summary">
+          <div class="panel-kicker-row"><span class="eyebrow">SIMULATED POSITION</span><span class="status-chip virtual-chip">NO HARDWARE DISPATCH</span></div>
+          <div class="sim-selected-time" id="sim-selected-time">Choose coordinates and load a day.</div>
+          <div class="angle-grid sim-angle-grid">
+            <div class="angle-cell"><span class="metric-label">Sun azimuth</span><strong id="sim-sun-azimuth">—</strong></div>
+            <div class="angle-cell"><span class="metric-label">Apparent elevation</span><strong id="sim-sun-elevation">—</strong></div>
+            <div class="angle-cell target-cell"><span class="metric-label">Panel azimuth</span><strong id="sim-panel-azimuth">—</strong></div>
+            <div class="angle-cell target-cell"><span class="metric-label">Panel tilt</span><strong id="sim-panel-tilt">—</strong></div>
+          </div>
+          <div class="command-preview sim-commands">
+            <span class="eyebrow">HYPOTHETICAL NOMINAL PULSES</span>
+            <div class="servo-row"><span><b>ID 1</b> · azimuth</span><strong id="sim-servo-1">—</strong></div>
+            <div class="servo-row"><span><b>ID 10</b> · tilt</span><strong id="sim-servo-10">—</strong></div>
+            <p class="manual-note">MANUAL COMMANDS PREPARED · simulation never dispatches</p>
+          </div>
+          <button class="button button-quiet full-button" id="copy-sim" type="button" disabled>Copy CLI Commands</button>
+          <p class="action-note">Copy prepares text for deliberate manual/external testing. It never sends commands.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="page-footer"><span>SolarMind · local-first solar instrument</span><span>Calculated target ≠ measured arm position</span></footer>
+
+  <dialog id="confirm-dialog" class="confirm-dialog" aria-labelledby="confirm-title">
+    <form method="dialog" class="dialog-close-row"><button class="dialog-close" aria-label="Close confirmation" value="cancel">×</button></form>
+    <p class="eyebrow">ONE-SHOT COMMAND REVIEW</p>
+    <h2 id="confirm-title">Review the requested movement</h2>
+    <div class="dialog-target" id="dialog-target"></div>
+    <div class="dialog-warning" id="dialog-warning"></div>
+    <label class="check-label confirm-check"><input id="confirm-operator" type="checkbox"> I have reviewed the target, calibration, travel path, and physical clearance.</label>
+    <div class="dialog-actions"><button class="button button-quiet" id="cancel-confirm" type="button">Cancel</button><button class="button button-primary" id="confirm-send" type="button" disabled>Confirm</button></div>
+    <p class="dialog-foot">ID 1 publishes first. ID 10 runs only if ID 1 returns success. CLI success does not prove physical movement.</p>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
